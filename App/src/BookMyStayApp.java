@@ -1,84 +1,64 @@
-abstract class Room {
+import java.util.HashMap;
+import java.util.Map;
+class RoomInventory {
 
-    protected String roomType;
-    protected int beds;
-    protected int size;
-    protected double price;
+    private HashMap<String, Integer> inventory;
 
-    public Room(String roomType, int beds, int size, double price) {
-        this.roomType = roomType;
-        this.beds = beds;
-        this.size = size;
-        this.price = price;
+    // Constructor to initialize inventory
+    public RoomInventory() {
+        inventory = new HashMap<>();
+
+        // Register room types with initial availability
+        inventory.put("Single Room", 5);
+        inventory.put("Double Room", 3);
+        inventory.put("Suite Room", 2);
     }
 
-    // Method to display room details
-    public void displayRoomDetails() {
-        System.out.println("Room Type: " + roomType);
-        System.out.println("Beds: " + beds);
-        System.out.println("Size: " + size + " sq.ft");
-        System.out.println("Price: ₹" + price + " per night");
+    // Method to get availability of a specific room type
+    public int getAvailability(String roomType) {
+        return inventory.getOrDefault(roomType, 0);
     }
-}
 
-// Single Room class
-class SingleRoom extends Room {
-
-    public SingleRoom() {
-        super("Single Room", 1, 200, 2000);
+    // Method to update availability
+    public void updateAvailability(String roomType, int newCount) {
+        if (inventory.containsKey(roomType)) {
+            inventory.put(roomType, newCount);
+        } else {
+            System.out.println("Room type not found.");
+        }
     }
-}
 
-// Double Room class
-class DoubleRoom extends Room {
-
-    public DoubleRoom() {
-        super("Double Room", 2, 350, 3500);
-    }
-}
-
-// Suite Room class
-class SuiteRoom extends Room {
-
-    public SuiteRoom() {
-        super("Suite Room", 3, 600, 8000);
+    // Method to display full inventory
+    public void displayInventory() {
+        System.out.println("Current Room Inventory:");
+        for (Map.Entry<String, Integer> entry : inventory.entrySet()) {
+            System.out.println(entry.getKey() + " Available: " + entry.getValue());
+        }
     }
 }
 public class BookMyStayApp {
     public static void main(String[] args) {
         System.out.println("=======================================");
         System.out.println("   Welcome to Book My Stay App");
-        System.out.println("   Hotel Booking System v2.1");
+        System.out.println("   Hotel Booking System v3.1");
         System.out.println("=======================================\n");
 
-        // Creating room objects (Polymorphism)
-        Room singleRoom = new SingleRoom();
-        Room doubleRoom = new DoubleRoom();
-        Room suiteRoom = new SuiteRoom();
+        // Initialize inventory
+        RoomInventory inventory = new RoomInventory();
 
-        // Static availability variables
-        int singleRoomAvailable = 5;
-        int doubleRoomAvailable = 3;
-        int suiteRoomAvailable = 2;
+        // Display current inventory
+        inventory.displayInventory();
 
-        // Display room details
-        System.out.println("Single Room Details:");
-        singleRoom.displayRoomDetails();
-        System.out.println("Available Rooms: " + singleRoomAvailable);
+        System.out.println("\nUpdating Double Room availability...\n");
 
-        System.out.println("\n-----------------------------\n");
+        // Update availability
+        inventory.updateAvailability("Double Room", 4);
 
-        System.out.println("Double Room Details:");
-        doubleRoom.displayRoomDetails();
-        System.out.println("Available Rooms: " + doubleRoomAvailable);
-
-        System.out.println("\n-----------------------------\n");
-
-        System.out.println("Suite Room Details:");
-        suiteRoom.displayRoomDetails();
-        System.out.println("Available Rooms: " + suiteRoomAvailable);
+        // Display updated inventory
+        inventory.displayInventory();
 
         System.out.println("\nApplication terminated successfully.");
+
 
 
     }
