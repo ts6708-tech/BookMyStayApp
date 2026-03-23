@@ -1,6 +1,13 @@
 import java.util.*;
 
-// Reservation (from UC5)
+// Custom Exception
+class InvalidBookingException extends Exception {
+    public InvalidBookingException(String message) {
+        super(message);
+    }
+}
+
+// Reservation
 class Reservation {
     String guestName;
     String roomType;
@@ -11,7 +18,7 @@ class Reservation {
     }
 }
 
-// Inventory Service
+// Inventory
 class Inventory {
     private Map<String, Integer> rooms = new HashMap<>();
 
@@ -20,7 +27,7 @@ class Inventory {
     }
 
     public int getAvailability(String type) {
-        return rooms.getOrDefault(type, 0);
+        return rooms.getOrDefault(type, -1); // -1 = invalid type
     }
 
     public void reduceRoom(String type) {
@@ -28,57 +35,52 @@ class Inventory {
     }
 }
 
-// Booking Service (Allocation Logic)
+// Validator
+class BookingValidator {
+
+    public static void validate(Reservation r, Inventory inventory)
+            throws InvalidBookingException {
+
+        // Validate room type
+        if (inventory.getAvailability(r.roomType) == -1) {
+            throw new InvalidBookingException("Invalid Room Type: " + r.roomType);
+        }
+
+        // Validate availability
+        if (inventory.getAvailability(r.roomType) <= 0) {
+            throw new InvalidBookingException("No rooms available for: " + r.roomType);
+        }
+
+        // Validate guest name
+        if (r.guestName == null || r.guestName.trim().isEmpty()) {
+            throw new InvalidBookingException("Guest name cannot be empty");
+        }
+    }
+}
+
+// Booking Service
 class BookingService {
 
-    private Queue<Reservation> queue;
     private Inventory inventory;
 
-    // Track allocated room IDs
-    private Set<String> allocatedRoomIds = new HashSet<>();
-
-    // Map room type → assigned IDs
-    private Map<String, Set<String>> roomAllocations = new HashMap<>();
-
-    public BookingService(Queue<Reservation> queue, Inventory inventory) {
-        this.queue = queue;
+    public BookingService(Inventory inventory) {
         this.inventory = inventory;
     }
 
-    // Process booking
-    public void processBookings() {
+    public void bookRoom(Reservation r) {
+        try {
+            // Validation (Fail Fast)
+            BookingValidator.validate(r, inventory);
 
-        while (!queue.isEmpty()) {
+            // If valid → proceed
+            inventory.reduceRoom(r.roomType);
 
-            Reservation r = queue.poll(); // FIFO
+            System.out.println("Booking SUCCESS for " + r.guestName +
+                    " | Room: " + r.roomType);
 
-            System.out.println("\nProcessing: " + r.guestName);
-
-            // Check availability
-            if (inventory.getAvailability(r.roomType) > 0) {
-
-                // Generate unique room ID
-                String roomId;
-                do {
-                    roomId = r.roomType + "-" + UUID.randomUUID().toString().substring(0, 5);
-                } while (allocatedRoomIds.contains(roomId));
-
-                // Store ID
-                allocatedRoomIds.add(roomId);
-
-                roomAllocations
-                        .computeIfAbsent(r.roomType, k -> new HashSet<>())
-                        .add(roomId);
-
-                // Reduce inventory
-                inventory.reduceRoom(r.roomType);
-
-                System.out.println("Booking CONFIRMED for " + r.guestName);
-                System.out.println("Assigned Room ID: " + roomId);
-
-            } else {
-                System.out.println("Booking FAILED for " + r.guestName + " (No rooms available)");
-            }
+        } catch (InvalidBookingException e) {
+            // Graceful failure
+            System.out.println("Booking FAILED: " + e.getMessage());
         }
     }
 }
@@ -87,21 +89,16 @@ class BookingService {
 public class BookMyStayApp {
     public static void main(String[] args) {
 
-        // Step 1: Queue (UC5)
-        Queue<Reservation> queue = new LinkedList<>();
-        queue.add(new Reservation("Alice", "Single"));
-        queue.add(new Reservation("Bob", "Single"));
-        queue.add(new Reservation("Charlie", "Suite"));
-
-        // Step 2: Inventory
         Inventory inventory = new Inventory();
         inventory.addRoom("Single", 1);
-        inventory.addRoom("Suite", 1);
+        inventory.addRoom("Suite", 0);
 
-        // Step 3: Booking Service
-        BookingService service = new BookingService(queue, inventory);
+        BookingService service = new BookingService(inventory);
 
-        // Step 4: Process bookings
-        service.processBookings();
+        // Test cases
+        service.bookRoom(new Reservation("Alice", "Single"));   // valid
+        service.bookRoom(new Reservation("Bob", "Suite"));      // no availability
+        service.bookRoom(new Reservation("", "Single"));        // invalid name
+        service.bookRoom(new Reservation("Charlie", "Deluxe")); // invalid type
     }
 }
